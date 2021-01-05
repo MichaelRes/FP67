@@ -14,10 +14,16 @@ from torchvision.transforms import ToTensor
 
 _thisdir = osp.realpath(osp.dirname(__file__))
 
-from model import dope_resnet50, num_joints
-import postprocess
+from dope.model import dope_resnet50, num_joints
+from dope import postprocess
 
-import visu
+from dope import visu
+
+import os
+
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
+
 
 def dope(imagename, modelname, postprocessing='ppi'):
     if postprocessing=='ppi':
@@ -79,16 +85,18 @@ def dope(imagename, modelname, postprocessing='ppi'):
     detections, body_with_wrists, body_with_head = postprocess.assign_hands_and_head_to_body(detections)
     
     # display results
-    print('Displaying results')
+    print('Storing results')
     det_poses2d = {part: np.stack([d['pose2d'] for d in part_detections], axis=0) if len(part_detections)>0 else np.empty( (0,num_joints[part],2), dtype=np.float32) for part, part_detections in detections.items()}
     scores = {part: [d['score'] for d in part_detections] for part,part_detections in detections.items()}
     imout = visu.visualize_bodyhandface2d(np.asarray(image)[:,:,::-1],
                                           det_poses2d,
                                           dict_scores=scores,
                                          )
-    outfile = imagename+'_{:s}.jpg'.format(modelname)
-    cv2.imwrite(outfile, imout)
-    print('\t', outfile)
+    #outfile = imagename+'_{:s}.jpg'.format(modelname)
+    #cv2.imwrite(outfile, imout)
+    #print('\t', outfile)
+
+    return det_poses2d, scores, imout
     
     # display results in 3D
     if args.do_visu3d:
